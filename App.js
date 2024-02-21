@@ -1,46 +1,62 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import Header from './Header';
-import TransactionForm from './TransactionForm';
-import TransactionTable from './TransactionTable';
+import TransactionTable from './TransactionForm';
+import TransactionForm from './TransactionTable';
+
+
 
 const App = () => {
   const [transactions, setTransactions] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    
-    axios.get('http://localhost:8001/transactions')
-      .then(response => setTransactions(response.data))
-      .catch(error => console.error('Error fetching transactions:', error));
+    const fetchTransactions = async () => {
+      try {
+        const response = await fetch('http://localhost:8001/transactions');
+        const data = await response.json();
+        setTransactions(data);
+      } catch (error) {
+        console.error('Error fetching transactions:', error);
+      }
+    };
+
+    fetchTransactions();
   }, []);
 
-  const handleAddTransaction = (newTransaction) => {
-    
-    setTransactions(prevTransactions => [...prevTransactions, newTransaction]);
+  const handleAddTransaction = async (newTransaction) => {
+    try {
+      const response = await fetch('http://localhost:3000/transactions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newTransaction),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add transaction');
+      }
+
+      const addedTransaction = await response.json();
+      setTransactions([...transactions, addedTransaction]);
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+    }
   };
 
-  const handleSearchTermChange = (term) => {
-    
+  const handleSearchChange = (term) => {
     setSearchTerm(term);
   };
 
-  const filteredTransactions = transactions.filter(transaction =>
+  const filteredTransactions = transactions.filter((transaction) =>
     transaction.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div>
-      <Header />
-      <TransactionForm onAddTransaction={handleAddTransaction} />
-      <TransactionTable transactions={filteredTransactions} />
-      <input
-        type="text"
-        placeholder="Search transactions..."
-        value={searchTerm}
-        onChange={(e) => handleSearchTermChange(e.target.value)}
-      />
-    </div>
+    <div className="container">
+    <h1>Bank Transactions App</h1>
+    <TransactionForm onAddTransaction={handleAddTransaction} />
+    <TransactionTable transactions={filteredTransactions} />
+  </div>
   );
 };
 
